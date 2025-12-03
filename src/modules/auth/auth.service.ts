@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../prisma/prisma.service';
+import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
@@ -12,52 +12,29 @@ import * as bcrypt from 'bcrypt';
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
+    private usersService: UsersService,
     private jwtService: JwtService,
   ) { }
 
   async register(registerDto: RegisterDto) {
-    const { email, password, name, role } = registerDto;
+    const { email } = registerDto;
 
     // Check if user already exists
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    const existingUser = await this.usersService.findOne(email);
 
     if (existingUser) {
       throw new ConflictException('User already exists');
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     // Create user
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        role: role || 'USER',
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-      },
-    });
-
-    return user;
+    return this.usersService.create(registerDto);
   }
 
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
     // Find user
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await this.usersService.findOne(email);
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -86,14 +63,6 @@ export class AuthService {
   }
 
   async validateUser(userId: string) {
-    return this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-      },
-    });
+    return this.usersService.findOneById(userId);
   }
 }

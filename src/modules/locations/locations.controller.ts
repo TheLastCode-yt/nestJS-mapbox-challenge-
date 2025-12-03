@@ -28,6 +28,7 @@ import { LocationsService } from './locations.service';
 import { CreateLocationDto } from './dto/create-location.dto';
 import { CreateLocationWithImageDto } from './dto/create-location-with-image.dto';
 import { UpdateLocationDto } from './dto/update-location.dto';
+import { UpdateLocationWithImageDto } from './dto/update-location-with-image.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { RoleType } from '@prisma/client';
@@ -87,6 +88,9 @@ export class LocationsController {
   @Patch(':id')
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
   @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: UpdateLocationWithImageDto })
+  @UseInterceptors(FileInterceptor('image'))
   @ApiOperation({
     summary: 'Update a location (requires ADMIN or MODERATOR role)',
   })
@@ -97,8 +101,18 @@ export class LocationsController {
   update(
     @Param('id') id: string,
     @Body() updateLocationDto: UpdateLocationDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 20 * 1024 * 1024 }), // 20MB
+          new FileTypeValidator({ fileType: /(jpg|jpeg|png|webp|svg)$/ }),
+        ],
+        fileIsRequired: false,
+      }),
+    )
+    image?: Express.Multer.File,
   ) {
-    return this.locationsService.update(id, updateLocationDto);
+    return this.locationsService.update(id, updateLocationDto, image);
   }
 
   @Delete(':id')

@@ -1,0 +1,35 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Instalar dependências do sistema
+RUN apk add --no-cache libc6-compat curl
+
+# Copiar arquivos de configuração
+COPY package*.json ./
+COPY tsconfig*.json ./
+COPY nest-cli.json ./
+
+# Instalar dependências
+RUN npm ci
+
+# Copiar arquivos do Prisma
+COPY prisma ./prisma/
+
+# Gerar Prisma Client
+RUN npx prisma generate
+
+# Copiar código fonte
+COPY . .
+
+# Criar usuário não-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nestjs -u 1001 && \
+    chown -R nestjs:nodejs /app
+
+USER nestjs
+
+EXPOSE 5000
+
+# Comando com limpeza da dist antes de iniciar
+CMD ["sh", "-c", "rm -rf dist && npx prisma migrate deploy && npm run start:dev"]

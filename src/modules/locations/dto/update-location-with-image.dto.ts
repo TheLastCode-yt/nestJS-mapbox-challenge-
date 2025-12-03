@@ -1,8 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsUrl, IsBoolean } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { IsString, IsOptional, IsBoolean } from 'class-validator';
 
-export class UpdateLocationDto {
+export class UpdateLocationWithImageDto {
+  @ApiProperty({
+    type: 'string',
+    format: 'binary',
+    required: false,
+    description: 'Image file to upload (jpg, jpeg, png, webp, svg). Max size: 20MB'
+  })
+  image?: any;
+
   @ApiProperty({ example: 'Eiffel Tower', required: false })
   @IsString()
   @IsOptional()
@@ -23,23 +30,10 @@ export class UpdateLocationDto {
   address?: string;
 
   @ApiProperty({
-    example: 'https://example.com/image.jpg',
-    required: false
-  })
-  @IsUrl()
-  @IsOptional()
-  image?: string;
-
-  @ApiProperty({
     example: true,
-    description: 'If true, keeps the existing image. If false or not provided with a new image file, replaces it.',
+    description: 'If true, keeps the existing image. If false, removes it. If a new image file is provided, this is ignored.',
     required: false,
     type: Boolean
-  })
-  @Transform(({ value }) => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
   })
   @IsBoolean()
   @IsOptional()
